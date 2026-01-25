@@ -8,10 +8,10 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - game
   - Water
   - UI
-  - game
+  - 
   - 
   - 
   - 
@@ -58,6 +58,9 @@ TagManager:
     locked: 0
   - name: Decor
     uniqueID: 3407397223
+    locked: 0
+  - name: UI
+    uniqueID: 896176425
     locked: 0
   m_RenderingLayers:
   - Default
