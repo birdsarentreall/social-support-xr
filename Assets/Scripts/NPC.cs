@@ -1,11 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class NPC : MonoBehaviour, IInteractible
+public class NPC : MonoBehaviour, IInteractable
 {
     public NPCDialogue dialogueData;
     public GameObject dialoguePanel;
@@ -35,7 +34,6 @@ public class NPC : MonoBehaviour, IInteractible
             StartDialogue();
         }
     }
-
 
     void StartDialogue()
     {

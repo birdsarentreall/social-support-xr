@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17855d807224d61439b809bac787da5a, type: 3}
   m_Name: SkeletonDialogue
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
-  npcName: 
-  npcPortrait: {fileID: 0}
-  dialogueLines: []
+  npcName: Skeleton
+  npcPortrait: {fileID: 21300000, guid: fb8642d809bf8984082864ed253fdc03, type: 3}
+  dialogueLines:
+  - RAAAAH!
+  autoProgressLines: 
+  autoProgressDelay: 1.5
   typingSpeed: 0.05
   voiceSound: {fileID: 0}
   voicePitch: 1
-  autoProgressLines: 
-  autoProgressDelay: 1.5
