@@ -68,7 +68,7 @@ public class BattleManager : MonoBehaviour
 
         if (playerHP <= 0)
         {
-            messageText.SetText("You were defeated...");
+            messageText.SetText("You lose...");
             EndBattle();
             return;
         }
@@ -85,8 +85,7 @@ public class BattleManager : MonoBehaviour
 
     void EndBattle()
     {
-        // Placeholder: later return to exploration
-        Debug.Log("Battle ended");
+        GameStateTransition.Instance.EndBattle(true);
     }
 }
 
