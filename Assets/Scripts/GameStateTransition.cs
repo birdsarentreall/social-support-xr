@@ -7,6 +7,7 @@ public class GameStateTransition : MonoBehaviour
     [Header("Roots")]
     public GameObject gameScreen;
     public GameObject battleScreen;
+    
 
     void Awake()
     {
