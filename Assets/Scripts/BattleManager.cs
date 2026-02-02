@@ -4,8 +4,9 @@ using TMPro;
 public class BattleManager : MonoBehaviour
 {
     [Header("Stats")]
-    public int playerMaxHP = 5;
+    public int playerMaxHP = 10;
     public int enemyMaxHP = 3;
+    public int enemyDamage = 1;
 
     int playerHP;
     int enemyHP;
@@ -22,19 +23,41 @@ public class BattleManager : MonoBehaviour
         StartBattle();
     }
 
-    void StartBattle()
-    {
-        playerHP = playerMaxHP;
-        enemyHP = enemyMaxHP;
-        playerTurn = true;
+void StartBattle()
+{
+    var enc = BattleContext.CurrentEncounter;
 
-        UpdateUI();
-        messageText.SetText("Your turn");
+    // Player HP is always fixed
+    playerHP = playerMaxHP;
+
+    if (enc == null || enc.enemy == null)
+    {
+        Debug.LogError("BattleContext.CurrentEncounter is missing.");
+        enemyMaxHP = 3;
+        enemyDamage = 1;
     }
+    else
+    {
+        // Enemy stats (can vary per encounter)
+        enemyMaxHP = (enc.enemyHPOverride > 0)
+            ? enc.enemyHPOverride
+            : enc.enemy.maxHP;
+
+        enemyDamage = (enc.enemyDamageOverride > 0)
+            ? enc.enemyDamageOverride
+            : enc.enemy.damage;
+    }
+
+    enemyHP = enemyMaxHP;
+    playerTurn = true;
+
+    UpdateUI();
+    messageText.SetText("Your turn");
+}
 
     public void ConfirmAttack()
     {
-        Debug.Log("attac");
+        //Debug.Log("attac");
         PlayerAttack();
     }
 
@@ -51,7 +74,7 @@ public class BattleManager : MonoBehaviour
         if (enemyHP <= 0)
         {
             messageText.SetText("Enemy defeated!");
-            EndBattle();
+            EndBattle(true);
             return;
         }
 
@@ -69,7 +92,7 @@ public class BattleManager : MonoBehaviour
         if (playerHP <= 0)
         {
             messageText.SetText("You lose...");
-            EndBattle();
+            EndBattle(false);
             return;
         }
 
@@ -83,9 +106,12 @@ public class BattleManager : MonoBehaviour
         enemyHPText.SetText($"HP: {enemyHP}");
     }
 
-    void EndBattle()
+    void EndBattle(bool playerWon)
     {
-        GameStateTransition.Instance.EndBattle(true);
+        EncounterSequence.Instance.OnBattleFinished(playerWon);
+        BattleContext.CurrentEncounter = null;
+        GameStateTransition.Instance.EndBattle(playerWon);
     }
+
 }
 
