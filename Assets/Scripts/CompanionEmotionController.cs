@@ -16,6 +16,10 @@ public class CompanionEmotionController : MonoBehaviour
 
     Coroutine overrideRoutine;
     bool overrideActive;
+    void Start()
+    {
+        Debug.Log($"[CompanionEmotionController] START on {name}");
+    }
 
     void Reset()
     {

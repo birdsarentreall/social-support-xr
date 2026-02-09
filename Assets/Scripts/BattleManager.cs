@@ -16,6 +16,9 @@ public class BattleManager : MonoBehaviour
     public TMP_Text enemyHPText;
     public TMP_Text messageText;
 
+    [Header("Spectator")]
+    public CompanionEmotionController companion;
+
     bool playerTurn;
 
     void OnEnable()
@@ -53,6 +56,7 @@ void StartBattle()
 
     UpdateUI();
     messageText.SetText("Your turn");
+    if (companion) companion.UpdateDuringBattle(playerHP, playerMaxHP);
 }
 
     public void ConfirmAttack()
@@ -86,6 +90,7 @@ void StartBattle()
     {
         playerHP -= 1;
         messageText.SetText("Enemy attacks!");
+        companion.UpdateDuringBattle(playerHP, playerMaxHP);
 
         UpdateUI();
 
@@ -108,6 +113,7 @@ void StartBattle()
 
     void EndBattle(bool playerWon)
     {
+        companion.ReactToOutcome(playerWon);
         EncounterSequence.Instance.OnBattleFinished(playerWon);
         BattleContext.CurrentEncounter = null;
         GameStateTransition.Instance.EndBattle(playerWon);
