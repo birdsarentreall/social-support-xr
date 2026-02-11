@@ -18,4 +18,15 @@ public class EncounterDef : ScriptableObject
 
     [Tooltip("Overrides enemy damage for this encounter")]
     public int enemyDamageOverride = 0;
+
+    public enum CompanionOutcomeMode
+    {
+        MatchOutcome,     // Win->Happy, Lose->Sad
+        MismatchOutcome,  // Win->Sad,   Lose->Happy
+        ForceIdle,
+        ForceHappy,
+        ForceSad
+    }
+
+    public CompanionOutcomeMode companionOutcomeMode = CompanionOutcomeMode.MatchOutcome;
 }

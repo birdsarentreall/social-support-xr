@@ -65,4 +65,19 @@ public class CompanionEmotionController : MonoBehaviour
         overrideActive = false;
         SetIdle();
     }
+
+    public void ReactToOutcomeForced(int emotion) // 0 idle, 1 happy, 2 sad
+    {
+        if (overrideRoutine != null) StopCoroutine(overrideRoutine);
+        overrideRoutine = StartCoroutine(OverrideRoutine(emotion));
+    }
+
+    IEnumerator OverrideRoutine(int emotion)
+    {
+        overrideActive = true;
+        SetEmotion(emotion);
+        yield return new WaitForSeconds(outcomeReactSeconds);
+        overrideActive = false;
+        SetIdle();
+    }
 }
