@@ -17,4 +17,5 @@ MonoBehaviour:
   startsBattle: 1
   enemyHPOverride: 0
   enemyDamageOverride: 0
+  fixedOutcome: 0
   companionOutcomeMode: 2

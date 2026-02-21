@@ -28,5 +28,16 @@ public class EncounterDef : ScriptableObject
         ForceSad
     }
 
+    public enum FixedOutcome
+    {
+        WinByALot,
+        Win,
+        Lose,
+        LoseByALot
+    }
+
+    public FixedOutcome fixedOutcome = FixedOutcome.Win;
+
+
     public CompanionOutcomeMode companionOutcomeMode = CompanionOutcomeMode.MatchOutcome;
 }

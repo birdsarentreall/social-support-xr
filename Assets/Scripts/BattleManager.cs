@@ -25,6 +25,13 @@ public class BattleManager : MonoBehaviour
     float battleStartTime;
     string sessionId;
 
+    bool blockNextHit;
+    bool blockedLastTurn;
+
+    int enemyTurnsRemaining;
+    int damageBudgetRemaining;
+
+    bool battleEnd;
 
 
     void OnEnable()
@@ -36,11 +43,32 @@ public class BattleManager : MonoBehaviour
 
     void StartBattle()
     {
+        battleEnd = false;
+        CancelInvoke();
+
         battleIndex++;
-        var enc = BattleContext.CurrentEncounter;
+        battleStartTime = Time.time;
+        blockNextHit = false;
 
         // Player HP is always fixed
         playerHP = playerMaxHP;
+        // Director: pick target final HP + number of enemy turns based on fixed outcome
+        int targetFinalHP = 5;           // Win default
+        enemyTurnsRemaining = 4;         // Win default
+
+        var enc = BattleContext.CurrentEncounter;
+        if (enc != null)
+        {
+            switch (enc.fixedOutcome)
+            {
+                case EncounterDef.FixedOutcome.WinByALot:  targetFinalHP = 9; enemyTurnsRemaining = 3; break;
+                case EncounterDef.FixedOutcome.Win:        targetFinalHP = 5; enemyTurnsRemaining = 4; break;
+                case EncounterDef.FixedOutcome.Lose:       targetFinalHP = 0; enemyTurnsRemaining = 4; break;
+                case EncounterDef.FixedOutcome.LoseByALot:  targetFinalHP = 0; enemyTurnsRemaining = 2; break;
+            }
+        }
+
+        damageBudgetRemaining = Mathf.Max(0, playerHP - targetFinalHP);
 
         if (enc == null || enc.enemy == null)
         {
@@ -77,7 +105,9 @@ public class BattleManager : MonoBehaviour
 
     public void PlayerAttack()
     {
+        if (battleEnd) return;
         if (!playerTurn) return;
+        blockedLastTurn = false;
 
         enemyHP -= 1;
         messageText.SetText("You attack!");
@@ -95,12 +125,49 @@ public class BattleManager : MonoBehaviour
         Invoke(nameof(EnemyAttack), 1.0f);
     }
 
+    public void ConfirmBlock()
+    {
+        if (!playerTurn) return;
+
+        if (blockedLastTurn)
+        {
+            messageText.SetText("You can't block twice in a row!");
+            return;
+        }
+
+        blockNextHit = true;
+        blockedLastTurn = true;
+
+        playerTurn = false;
+        messageText.SetText("You block!");
+
+        Invoke(nameof(EnemyAttack), 1.0f);
+    }
+
     void EnemyAttack()
     {
-        playerHP -= 1;
-        messageText.SetText("Enemy attacks!");
-        companion.UpdateDuringBattle(playerHP, playerMaxHP);
+        int rawDmg = ChoosePlannedEnemyDamage(); // planned 0–2
 
+        int finalDmg = rawDmg;
+
+        if (blockNextHit)
+        {
+            finalDmg = 0;
+            blockNextHit = false;
+
+            damageBudgetRemaining += rawDmg;
+
+            messageText.SetText("Blocked!");
+        }
+        else
+        {
+            messageText.SetText(rawDmg >= 2 ? "Enemy attacks (Heavy)!" : "Enemy attacks (Light)!");
+        }
+
+        playerHP -= finalDmg;
+        if (playerHP < 0) playerHP = 0;
+
+        if (companion) companion.UpdateDuringBattle(playerHP, playerMaxHP);
         UpdateUI();
 
         if (playerHP <= 0)
@@ -122,13 +189,17 @@ public class BattleManager : MonoBehaviour
 
     void EndBattle(bool playerWon)
     {
+        if (battleEnd) return;
+        battleEnd = true;
+
+        CancelInvoke();
+        playerTurn = false; 
         float durationSeconds = Time.time - battleStartTime;
 
         var enc = BattleContext.CurrentEncounter;
         string encounterName = enc ? enc.name : "NULL";
         string outcome = playerWon ? "WIN" : "LOSE";
 
-        // Your emotion condition (nested enum version)
         string emotionMode = (enc != null) ? enc.companionOutcomeMode.ToString() : "NULL";
 
         BattleMetricsLogger.AppendBattleRow(
@@ -169,6 +240,25 @@ public class BattleManager : MonoBehaviour
         StartCoroutine(EndBattleAfterReaction(playerWon));
     }
 
+    int ChoosePlannedEnemyDamage()
+    {
+        if (enemyTurnsRemaining <= 0)
+        {
+            int spend = Mathf.Clamp(damageBudgetRemaining, 0, 2);
+            damageBudgetRemaining -= spend;
+            return spend;
+        }
+
+        float requiredAvg = damageBudgetRemaining / (float)enemyTurnsRemaining;
+
+        int planned = Mathf.Clamp(Mathf.RoundToInt(requiredAvg), 1, 2);
+
+        enemyTurnsRemaining--;
+        damageBudgetRemaining -= planned;
+        if (damageBudgetRemaining < 0) damageBudgetRemaining = 0;
+
+        return planned;
+    }
 
     IEnumerator EndBattleAfterReaction(bool playerWon)
     {

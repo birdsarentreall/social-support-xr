@@ -32,7 +32,6 @@ public static class BattleMetricsLogger
                 string ts = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
                 string dur = durationSeconds.ToString("0.000", CultureInfo.InvariantCulture);
 
-                // Basic CSV escaping for commas/quotes
                 sw.WriteLine($"{Csv(sessionId)},{battleIndex},{Csv(encounterName)},{Csv(emotionMode)},{Csv(outcome)},{dur}");
 
             }

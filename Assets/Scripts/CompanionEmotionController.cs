@@ -26,7 +26,6 @@ public class CompanionEmotionController : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
-    // Call this anytime you want to set a “normal” emotion (no timer)
     public void SetIdle() => SetEmotion(0);
     public void SetHappy() => SetEmotion(1);
     public void SetSad() => SetEmotion(2);
@@ -37,10 +36,9 @@ public class CompanionEmotionController : MonoBehaviour
         animator.SetInteger(emotionParam, e);
     }
 
-    // Call during battle whenever HP changes
     public void UpdateDuringBattle(int playerHP, int playerMaxHP)
     {
-        if (overrideActive) return; // don’t fight post-battle override
+        if (overrideActive) return;
 
         float frac = (playerMaxHP <= 0) ? 0f : (float)playerHP / playerMaxHP;
 
@@ -48,7 +46,6 @@ public class CompanionEmotionController : MonoBehaviour
         else SetIdle();
     }
 
-    // Call at battle end
     public void ReactToOutcome(bool playerWon)
     {
         if (overrideRoutine != null) StopCoroutine(overrideRoutine);

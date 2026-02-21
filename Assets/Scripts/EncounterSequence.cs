@@ -39,7 +39,7 @@ public class EncounterSequence : MonoBehaviour
 
     void Start()
     {
-        SelectStudyOrder();     // uses studyOrderIndex from Inspector
+        SelectStudyOrder();  
         ActivateOverworld(0);
     }
 
