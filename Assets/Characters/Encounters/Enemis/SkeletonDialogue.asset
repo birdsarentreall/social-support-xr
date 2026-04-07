@@ -15,7 +15,7 @@ MonoBehaviour:
   npcName: Skeleton
   npcPortrait: {fileID: 21300000, guid: fb8642d809bf8984082864ed253fdc03, type: 3}
   dialogueLines:
-  - RAAAAH!
+  - "cl\u2026 cl\u2026 clack\u2026"
   autoProgressLines: 
   autoProgressDelay: 1.5
   typingSpeed: 0.05

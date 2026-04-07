@@ -14,7 +14,8 @@ public static class BattleMetricsLogger
         string encounterName,
         string emotionMode,
         string outcome,
-        float durationSeconds)
+        float durationSeconds,
+        int spectatorLooks)
 
     {
         lock (_lock)
@@ -25,14 +26,13 @@ public static class BattleMetricsLogger
             {
                 if (writeHeader)
                 {
-                    sw.WriteLine("session_id,battle_index,encounter,emotion_mode,outcome,duration_seconds");
+                    sw.WriteLine("session_id,battle_index,encounter,emotion_mode,outcome,duration_seconds,spectator_looks");
 
                 }
 
-                string ts = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
                 string dur = durationSeconds.ToString("0.000", CultureInfo.InvariantCulture);
 
-                sw.WriteLine($"{Csv(sessionId)},{battleIndex},{Csv(encounterName)},{Csv(emotionMode)},{Csv(outcome)},{dur}");
+                sw.WriteLine($"{Csv(sessionId)},{battleIndex},{Csv(encounterName)},{Csv(emotionMode)},{Csv(outcome)},{dur},{spectatorLooks}");
 
             }
 

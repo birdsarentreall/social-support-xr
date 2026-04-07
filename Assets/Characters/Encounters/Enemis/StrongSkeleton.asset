@@ -14,5 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   enemyName: 
   enemyPortrait: {fileID: 0}
-  maxHP: 12
-  damage: 2
+  maxHP: 170
+  lightDamage: 22
+  heavyDamage: 33
+  heavyBlockMultiplier: 0
+  attackPattern: 0000000001000000000000000100000000000000010000000100000000000000000000000000000000000000

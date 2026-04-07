@@ -38,6 +38,7 @@ public class NPC : MonoBehaviour, IInteractable
 
     void StartDialogue()
     {
+        if (!gameObject.activeInHierarchy) return;
         isDialogueActive = true;
         dialogueIndex = 0;
 

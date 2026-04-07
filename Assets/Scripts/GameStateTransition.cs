@@ -5,6 +5,10 @@ public class GameStateTransition : MonoBehaviour
 {
     public static GameStateTransition Instance;
 
+    [Header("Spawnpoint")]
+    public Transform player;
+    public Transform spawnPoint;
+
     [Header("Roots")]
     public GameObject gameScreen;
     public GameObject battleScreen;
@@ -52,8 +56,24 @@ public class GameStateTransition : MonoBehaviour
 
     public void EndBattle(bool playerWon)
     {
+        var rb = player.GetComponent<Rigidbody2D>();
+        var col = player.GetComponent<Collider2D>();
+        Vector2 target = (Vector2)spawnPoint.position;
+
         if (battleScreen != null) battleScreen.SetActive(false);
         if (gameScreen != null) gameScreen.SetActive(true);
+
+        if (col != null) col.enabled = false;
+
+        if (player != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.position = target;
+        }
+        
+        Physics2D.SyncTransforms();
+        if (col != null) col.enabled = true;
 
         if (brain != null) brain.enabled = true;
 

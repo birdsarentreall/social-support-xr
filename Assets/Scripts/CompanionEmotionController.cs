@@ -14,6 +14,7 @@ public class CompanionEmotionController : MonoBehaviour
     [Header("Post-battle reaction")]
     public float outcomeReactSeconds = 2.0f;
 
+    private int currentEmotion = -1;
     Coroutine overrideRoutine;
     bool overrideActive;
     void Start()
@@ -65,6 +66,23 @@ public class CompanionEmotionController : MonoBehaviour
 
     public void ReactToOutcomeForced(int emotion) // 0 idle, 1 happy, 2 sad
     {
+        if (emotion != currentEmotion)
+        {
+            currentEmotion = emotion;
+
+            switch (emotion)
+            {
+                case 0:
+                    SoundEffectManager.Play("spectator_idle");
+                    break;
+                case 1:
+                    SoundEffectManager.Play("spectator_happy");
+                    break;
+                case 2:
+                    SoundEffectManager.Play("spectator_sad");
+                    break;
+            }
+        }
         if (overrideRoutine != null) StopCoroutine(overrideRoutine);
         overrideRoutine = StartCoroutine(OverrideRoutine(emotion));
     }

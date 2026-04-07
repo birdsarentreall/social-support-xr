@@ -5,13 +5,20 @@ using System.Collections;
 public class BattleManager : MonoBehaviour
 {
     [Header("Stats")]
-    public int playerMaxHP = 10;
+    public int playerMaxHP = 100;
     public int enemyMaxHP = 3;
     public int enemyDamage = 1;
 
     int playerHP;
     int enemyHP;
 
+    EnemyStats enemy;
+    int lightDamage;
+    int heavyDamage;
+    float heavyBlockMultiplier;
+    int patternIndex;
+
+    AttackType nextEnemyAttack;   
     [Header("UI")]
     public TMP_Text playerHPText;
     public TMP_Text enemyHPText;
@@ -21,97 +28,90 @@ public class BattleManager : MonoBehaviour
     public CompanionEmotionController companion;
 
     bool playerTurn;
-    int battleIndex = 0;
-    float battleStartTime;
-    string sessionId;
+    bool battleEnd;
 
     bool blockNextHit;
     bool blockedLastTurn;
 
-    int enemyTurnsRemaining;
-    int damageBudgetRemaining;
+    public GlanceTracker lookTracker;
 
-    bool battleEnd;
+    int battleIndex = 0;
+    float battleStartTime;
+    string sessionId;
 
+    [Header("Intent Indicator")]
+    public TMP_Text enemyIntentText;     
 
     void OnEnable()
     {
         if (string.IsNullOrEmpty(sessionId))
             sessionId = System.Guid.NewGuid().ToString("N");
+
         StartBattle();
     }
 
     void StartBattle()
     {
+        if (lookTracker) lookTracker.ResetCount();
         battleEnd = false;
         CancelInvoke();
 
         battleIndex++;
         battleStartTime = Time.time;
-        blockNextHit = false;
 
-        // Player HP is always fixed
-        playerHP = playerMaxHP;
-        // Director: pick target final HP + number of enemy turns based on fixed outcome
-        int targetFinalHP = 5;           // Win default
-        enemyTurnsRemaining = 4;         // Win default
+        blockNextHit = false;
+        blockedLastTurn = false;
 
         var enc = BattleContext.CurrentEncounter;
-        if (enc != null)
-        {
-            switch (enc.fixedOutcome)
-            {
-                case EncounterDef.FixedOutcome.WinByALot:  targetFinalHP = 9; enemyTurnsRemaining = 3; break;
-                case EncounterDef.FixedOutcome.Win:        targetFinalHP = 5; enemyTurnsRemaining = 4; break;
-                case EncounterDef.FixedOutcome.Lose:       targetFinalHP = 0; enemyTurnsRemaining = 4; break;
-                case EncounterDef.FixedOutcome.LoseByALot:  targetFinalHP = 0; enemyTurnsRemaining = 2; break;
-            }
-        }
 
-        damageBudgetRemaining = Mathf.Max(0, playerHP - targetFinalHP);
+        playerHP = playerMaxHP;
 
         if (enc == null || enc.enemy == null)
         {
             Debug.LogError("BattleContext.CurrentEncounter is missing.");
-            enemyMaxHP = 3;
-            enemyDamage = 1;
+            enemy = null;
+
+            enemyMaxHP = 100;
+            lightDamage = 12;
+            heavyDamage = 28;
+            heavyBlockMultiplier = 0.5f;
+            patternIndex = 0;
         }
         else
         {
-            // Enemy stats (can vary per encounter)
-            enemyMaxHP = (enc.enemyHPOverride > 0)
-                ? enc.enemyHPOverride
-                : enc.enemy.maxHP;
+            enemy = enc.enemy;
 
-            enemyDamage = (enc.enemyDamageOverride > 0)
-                ? enc.enemyDamageOverride
-                : enc.enemy.damage;
+            enemyMaxHP = (enc.enemyHPOverride > 0) ? enc.enemyHPOverride : enemy.maxHP;
+
+            lightDamage = enemy.lightDamage;
+            heavyDamage = enemy.heavyDamage;
+
+            heavyBlockMultiplier = enemy.heavyBlockMultiplier;
+            patternIndex = 0;
         }
 
         enemyHP = enemyMaxHP;
         playerTurn = true;
 
+
+        NextEnemyAttack();
         UpdateUI();
         messageText.SetText("Your turn");
-        if (companion) companion.UpdateDuringBattle(playerHP, playerMaxHP);
+
+        if (companion)
+            companion.UpdateDuringBattle(playerHP, playerMaxHP);
     }
 
     public void ConfirmAttack()
     {
-        //Debug.Log("attac");
-        PlayerAttack();
-    }
+        if (battleEnd || !playerTurn) return;
 
-
-    public void PlayerAttack()
-    {
-        if (battleEnd) return;
-        if (!playerTurn) return;
         blockedLastTurn = false;
 
-        enemyHP -= 1;
-        messageText.SetText("You attack!");
+        enemyHP -= 20;
+        enemyHP = Mathf.Max(0, enemyHP);
 
+        messageText.SetText("You attack!");
         UpdateUI();
 
         if (enemyHP <= 0)
@@ -127,7 +127,7 @@ public class BattleManager : MonoBehaviour
 
     public void ConfirmBlock()
     {
-        if (!playerTurn) return;
+        if (battleEnd || !playerTurn) return;
 
         if (blockedLastTurn)
         {
@@ -146,45 +146,88 @@ public class BattleManager : MonoBehaviour
 
     void EnemyAttack()
     {
-        int rawDmg = ChoosePlannedEnemyDamage(); // planned 0–2
+        if (battleEnd) return;
 
-        int finalDmg = rawDmg;
+        int finalDamage = 0;
 
-        if (blockNextHit)
+        if (nextEnemyAttack == AttackType.Light)
         {
-            finalDmg = 0;
-            blockNextHit = false;
+            finalDamage = lightDamage;
 
-            damageBudgetRemaining += rawDmg;
-
-            messageText.SetText("Blocked!");
+            if (blockNextHit)
+            {
+                finalDamage = 0;
+                messageText.SetText("Blocked light attack!");
+            }
+            else
+            {
+                messageText.SetText("Enemy uses light attack!");
+            }
         }
         else
         {
-            messageText.SetText(rawDmg >= 2 ? "Enemy attacks (Heavy)!" : "Enemy attacks (Light)!");
+            finalDamage = heavyDamage;
+
+            if (blockNextHit)
+            {
+                finalDamage = Mathf.RoundToInt(finalDamage * heavyBlockMultiplier);
+                messageText.SetText("Blocked heavy attack!");
+            }
+            else
+            {
+                messageText.SetText("Enemy uses heavy attack!");
+            }
         }
 
-        playerHP -= finalDmg;
-        if (playerHP < 0) playerHP = 0;
+        blockNextHit = false;
 
-        if (companion) companion.UpdateDuringBattle(playerHP, playerMaxHP);
-        UpdateUI();
+        playerHP -= finalDamage;
+        playerHP = Mathf.Max(0, playerHP);
+
+        if (companion)
+            companion.UpdateDuringBattle(playerHP, playerMaxHP);
 
         if (playerHP <= 0)
         {
+            playerHP = 0;
+            UpdateUI();
             messageText.SetText("You lose...");
             EndBattle(false);
             return;
         }
 
-        playerTurn = true;
-        messageText.SetText("Your turn");
+        NextEnemyAttack();
+        UpdateUI();
+
+        playerTurn = false;
+        CancelInvoke(nameof(BeginPlayerTurn));
+        Invoke(nameof(BeginPlayerTurn), 0.8f);
+    }
+
+    void BeginPlayerTurn()
+        {
+            if (battleEnd) return;
+            playerTurn = true;
+            messageText.SetText("Your turn");
+        }
+
+    void NextEnemyAttack()
+    {
+        if (enemy == null || enemy.attackPattern == null || enemy.attackPattern.Count == 0)
+        {
+            nextEnemyAttack = AttackType.Light;
+            return;
+        }
+
+        nextEnemyAttack = enemy.attackPattern[patternIndex % enemy.attackPattern.Count];
+        patternIndex++;
     }
 
     void UpdateUI()
     {
         playerHPText.SetText($"HP: {playerHP}");
         enemyHPText.SetText($"HP: {enemyHP}");
+        enemyIntentText.SetText(nextEnemyAttack == AttackType.Light ? "Light" : "Heavy");
     }
 
     void EndBattle(bool playerWon)
@@ -193,14 +236,15 @@ public class BattleManager : MonoBehaviour
         battleEnd = true;
 
         CancelInvoke();
-        playerTurn = false; 
+        playerTurn = false;
+
         float durationSeconds = Time.time - battleStartTime;
+        int spectatorLooks = lookTracker ? lookTracker.lookCount : 0;
 
         var enc = BattleContext.CurrentEncounter;
         string encounterName = enc ? enc.name : "NULL";
         string outcome = playerWon ? "WIN" : "LOSE";
-
-        string emotionMode = (enc != null) ? enc.companionOutcomeMode.ToString() : "NULL";
+        string emotionMode = enc ? enc.companionOutcomeMode.ToString() : "NULL";
 
         BattleMetricsLogger.AppendBattleRow(
             sessionId,
@@ -208,66 +252,41 @@ public class BattleManager : MonoBehaviour
             encounterName,
             emotionMode,
             outcome,
-            durationSeconds
+            durationSeconds,
+            spectatorLooks
         );
-
-        var mode = EncounterDef.CompanionOutcomeMode.MatchOutcome;
-
-        if (enc != null) mode = enc.companionOutcomeMode;
 
         int shownEmotion = 0;
 
-        switch (mode)
+        if (enc != null)
         {
-            case EncounterDef.CompanionOutcomeMode.MatchOutcome:
-                shownEmotion = playerWon ? 1 : 2;
-                break;
-            case EncounterDef.CompanionOutcomeMode.MismatchOutcome:
-                shownEmotion = playerWon ? 2 : 1;
-                break;
-            case EncounterDef.CompanionOutcomeMode.ForceIdle:
-                shownEmotion = 0;
-                break;
-            case EncounterDef.CompanionOutcomeMode.ForceHappy:
-                shownEmotion = 1;
-                break;
-            case EncounterDef.CompanionOutcomeMode.ForceSad:
-                shownEmotion = 2;
-                break;
+            switch (enc.companionOutcomeMode)
+            {
+                case EncounterDef.CompanionOutcomeMode.MatchOutcome:
+                    shownEmotion = playerWon ? 1 : 2;
+                    break;
+                case EncounterDef.CompanionOutcomeMode.MismatchOutcome:
+                    shownEmotion = playerWon ? 2 : 1;
+                    break;
+                case EncounterDef.CompanionOutcomeMode.ForceIdle:
+                    shownEmotion = 0;
+                    break;
+            }
         }
 
-        companion.ReactToOutcomeForced(shownEmotion);
+        if (companion)
+            companion.ReactToOutcomeForced(shownEmotion);
+
         StartCoroutine(EndBattleAfterReaction(playerWon));
-    }
-
-    int ChoosePlannedEnemyDamage()
-    {
-        if (enemyTurnsRemaining <= 0)
-        {
-            int spend = Mathf.Clamp(damageBudgetRemaining, 0, 2);
-            damageBudgetRemaining -= spend;
-            return spend;
-        }
-
-        float requiredAvg = damageBudgetRemaining / (float)enemyTurnsRemaining;
-
-        int planned = Mathf.Clamp(Mathf.RoundToInt(requiredAvg), 1, 2);
-
-        enemyTurnsRemaining--;
-        damageBudgetRemaining -= planned;
-        if (damageBudgetRemaining < 0) damageBudgetRemaining = 0;
-
-        return planned;
     }
 
     IEnumerator EndBattleAfterReaction(bool playerWon)
     {
-        yield return new WaitForSeconds(companion.outcomeReactSeconds);
+        float wait = companion ? companion.outcomeReactSeconds : 0f;
+        yield return new WaitForSeconds(wait);
 
         EncounterSequence.Instance.OnBattleFinished(playerWon);
         BattleContext.CurrentEncounter = null;
         GameStateTransition.Instance.EndBattle(playerWon);
     }
-
 }
-

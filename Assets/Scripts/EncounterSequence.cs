@@ -5,19 +5,22 @@ public class EncounterSequence : MonoBehaviour
 {
     public static EncounterSequence Instance;
 
-    [Header("Encounter order (runtime)")]
+    [Header("Encounter order")]
     public List<EncounterDef> encounters = new();
 
-    [Header("Optional overworld progression")]
+    [Header("Level Order")]
     public List<GameObject> overworldRoots = new();
     public bool advanceOverworldAfterEachBattle = false;
 
     int encounterIndex = 0;
     int overworldIndex = 0;
 
-    [Header("Study orders (12 permutations)")]
+    [Header("Study orders")]
     [Range(0, 11)]
     public int studyOrderIndex = 0;
+
+    [Header("End Screen")]
+    public GameObject endScreen; 
 
     public List<EncounterDef> order0 = new();
     public List<EncounterDef> order1 = new();
@@ -82,6 +85,8 @@ public class EncounterSequence : MonoBehaviour
         if (encounterIndex >= encounters.Count)
         {
             Debug.Log("EncounterSequence: no more encounters.");
+            if (endScreen != null)
+                endScreen.SetActive(true);
             return null;
         }
 
@@ -92,8 +97,7 @@ public class EncounterSequence : MonoBehaviour
     {
         if (!advanceOverworldAfterEachBattle) return;
 
-        int next = overworldIndex + 1;
-        if (next < overworldRoots.Count)
+            int next = (overworldIndex + 1) % overworldRoots.Count;
             ActivateOverworld(next);
     }
 
@@ -103,5 +107,10 @@ public class EncounterSequence : MonoBehaviour
 
         for (int i = 0; i < overworldRoots.Count; i++)
             overworldRoots[i].SetActive(i == overworldIndex);
+    }
+
+    public bool HasMoreEncounters()
+    {
+        return encounters != null && encounterIndex < encounters.Count;
     }
 }
